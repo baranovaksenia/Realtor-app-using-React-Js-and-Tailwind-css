@@ -15,7 +15,7 @@ const Header = () => {
 
   return (
     <div className="bg-white border-b shadow-sm sticky top-0 z-10">
-      <header className="flex justify-between px-3 items-center max-w-7xl mx-auto ">
+      <header className="flex justify-between px-3 items-center max-w-6xl mx-auto ">
         <div>
           <img
             onClick={() => navigate('/')}
