@@ -1,16 +1,22 @@
 import React from 'react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AiFillEyeInvisible, AiFillEye } from 'react-icons/ai';
 import OAuth from '../../components/header/OAuth';
 
+import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { db } from '../../../firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+
+import { toast } from 'react-toastify';
 const SignUp = () => {
-  // TODO add react hook form validation
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
 
   //  destructuring
   const { name, email, password } = formData;
+
+  const navigate = useNavigate();
 
   const onChangeHandler = (e) => {
     setFormData((prevState) => ({
@@ -19,6 +25,32 @@ const SignUp = () => {
     }));
   };
 
+  const onSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const auth = getAuth();
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+      // providerData.displayName
+      updateProfile(auth.currentUser, {
+        displayName: name,
+      });
+
+      const user = userCredential.user;
+      // make a copy of the state with the user's data that after we can delete the password (do not save it in database)
+      const formDataCopy = { ...formData };
+      delete formDataCopy.password;
+      // add timestamp (method provided by firebase)
+      formDataCopy.timestamp = serverTimestamp();
+      // save data in database (1 - name of db, 2 - name of collection)
+      await setDoc(doc(db, 'users', user.uid), formDataCopy);
+      toast.success('Вы успешно зарегистрировались');
+      navigate('/');
+    } catch (err) {
+      toast.error('Ошибка при регистрации. Попробуйте снова');
+    }
+  };
   return (
     <section>
       <h1 className="text-3xl font-bold text-center mt-6">Sign In</h1>
@@ -30,14 +62,14 @@ const SignUp = () => {
           />
         </div>
         <div className="w-full md:w-[67%] lg:w-[40%] lg:ml-20">
-          <form>
+          <form onSubmit={onSubmit}>
             <input
               className="w-full px-4 py-2 text-xl text-gray-700 bg-white border-gray-300 rounded transition ease-in-out mb-6"
               type="text"
               name="name"
               value={name}
               onChange={onChangeHandler}
-              placeholder="Your name"
+              placeholder="Ваше имя"
             />
             <input
               className="w-full px-4 py-2 text-xl text-gray-700 bg-white border-gray-300 rounded transition ease-in-out mb-6"
@@ -45,7 +77,7 @@ const SignUp = () => {
               name="email"
               value={email}
               onChange={onChangeHandler}
-              placeholder="Enter Email"
+              placeholder="Ваш email"
             />
             <div className="relative">
               <input
@@ -54,7 +86,7 @@ const SignUp = () => {
                 name="password"
                 value={password}
                 onChange={onChangeHandler}
-                placeholder="Password"
+                placeholder="Ваш пароль"
               />
               {showPassword ? (
                 <AiFillEyeInvisible
@@ -70,26 +102,26 @@ const SignUp = () => {
             </div>
             <div className="mb-6 flex justify-between items-center whitespace-nowrap text-sm sm:text-lg">
               <p className="">
-                Have an account?
+                Есть аккаунт?
                 <Link
                   to="/sign-in"
                   className="text-red-600 hover:text-red-700 transition duration-200 ml-1">
-                  Sign In
+                  Войти
                 </Link>
               </p>
               <p>
                 <Link
                   to="/reset-password"
                   className="text-blue-600 hover:text-blue-700 transition duration-200">
-                  Forgot Password?
+                  Забыли пароль?
                 </Link>
               </p>
             </div>
             <button className="w-full bg-blue-600 text-white px-7 py-3 text-sm font-medium uppercase rounded shadow-md hover:bg-blue-700 transition duration-150 ease-in-out hover:shadow-lg active:bg-blue-800">
-              Sign In
+              Регистрация
             </button>
             <div className="flex my-4 items-center before:border-t before:flex-1  before:border-gray-300 after:border-t after:flex-1  after:border-gray-300">
-              <p className="text-center font-semibold mx-4">OR</p>
+              <p className="text-center font-semibold mx-4">или</p>
             </div>
             <OAuth />
           </form>
